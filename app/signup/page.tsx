@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// 1. The Main Page (The "Safe" Wrapper)
 export default function SignupPage() {
   return (
     <Suspense fallback={
@@ -18,32 +17,40 @@ export default function SignupPage() {
   );
 }
 
-// 2. The Actual Signup Logic
 function SignupForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const router = useRouter();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg(null);
 
-    // Create Auth User
+    // 1. Sign up the user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        // This ensures the redirect points back to your site's callback handler
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: {
+          display_name: displayName,
+        }
+      },
     });
 
     if (authError) {
-      alert(authError.message);
+      setErrorMsg(authError.message);
       setLoading(false);
       return;
     }
 
     if (authData.user) {
-      // Create Profile in our 'profiles' table
+      // 2. Create the profile in your custom 'profiles' table
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([
@@ -56,10 +63,13 @@ function SignupForm() {
         ]);
 
       if (profileError) {
-        alert("Account created, but profile setup failed. Please log in to try again.");
+        console.error("Profile error:", profileError);
+        // We don't stop here because the account IS created. 
+        // We send them to login to try and trigger the profile creation again.
+        setErrorMsg("Account created, but profile sync failed. Please try logging in.");
       } else {
-        alert("Welcome to Literally! Please check your email for a verification link.");
-        router.push('/login');
+        // Success! Redirect to the feed
+        router.push('/feed');
       }
     }
     setLoading(false);
@@ -69,9 +79,15 @@ function SignupForm() {
     <div className="min-h-screen bg-[#fdfcfb] flex flex-col justify-center items-center p-6">
       <div className="max-w-md w-full bg-white p-10 rounded-[3rem] shadow-xl border border-stone-100">
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-serif font-bold italic text-stone-900">Join the Circle</h1>
-          <p className="text-stone-400 text-sm mt-2">Become a published poet today.</p>
+          <h1 className="text-4xl font-serif font-bold italic text-stone-900">literally.</h1>
+          <p className="text-stone-400 text-sm mt-2">Start your manuscript journey.</p>
         </div>
+
+        {errorMsg && (
+          <div className="mb-6 p-4 bg-orange-50 text-orange-700 text-xs rounded-2xl border border-orange-100 text-center">
+            {errorMsg}
+          </div>
+        )}
 
         <form onSubmit={handleSignup} className="space-y-5">
           <div>
@@ -79,7 +95,7 @@ function SignupForm() {
             <input 
               required
               type="text" 
-              placeholder="e.g. Maya_Angelou" 
+              placeholder="e.g. Orwellian" 
               className="w-full bg-stone-50 border-none p-4 rounded-2xl outline-none focus:ring-2 focus:ring-orange-100 transition-all"
               onChange={(e) => setDisplayName(e.target.value)}
             />
@@ -110,14 +126,14 @@ function SignupForm() {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-stone-900 text-white py-5 rounded-2xl font-bold shadow-lg hover:bg-black hover:-translate-y-1 transition-all active:scale-95"
+            className="w-full bg-stone-900 text-white py-5 rounded-2xl font-bold shadow-lg hover:bg-black hover:-translate-y-1 transition-all active:scale-95 disabled:bg-stone-400"
           >
-            {loading ? "Inking your details..." : "Create Account"}
+            {loading ? "Creating account..." : "Sign Up"}
           </button>
         </form>
 
         <p className="text-center mt-8 text-sm text-stone-500">
-          Already a member? <Link href="/login" className="text-orange-600 font-bold hover:underline">Log in</Link>
+          Already a poet? <Link href="/login" className="text-orange-600 font-bold hover:underline">Log in</Link>
         </p>
       </div>
     </div>
