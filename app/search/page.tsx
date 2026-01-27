@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export default function SearchResults() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q');
@@ -100,4 +102,5 @@ export default function SearchResults() {
       )}
     </div>
   );
+
 }
