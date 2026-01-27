@@ -1,11 +1,10 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-
-export const dynamic = 'force-dynamic';
 
 export default function SearchResults() {
   const searchParams = useSearchParams();
@@ -104,3 +103,4 @@ export default function SearchResults() {
   );
 
 }
+
