@@ -1,66 +1,80 @@
-'use client';
+'use client'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useState } from 'react'
 
-import { Suspense, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+export default function SignUp() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [username, setUsername] = useState('')
+  const supabase = createClientComponentClient()
 
-export default function SignupPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#fdfcfb] flex items-center justify-center font-serif italic text-stone-400">
-        Preparing your stationery...
-      </div>
-    }>
-      <SignupForm />
-    </Suspense>
-  );
-}
+  // --- 1. SIGN UP WITH GOOGLE ---
+  const handleGoogleSignUp = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        // This sends the user to our callback route after Google is done
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+  }
 
-function SignupForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const router = useRouter();
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMsg(null);
-
-    // 1. Sign up the user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+  // --- 2. SIGN UP WITH EMAIL ---
+  const handleEmailSignUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        // This ensures the redirect points back to your site's callback handler
         emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: {
-          display_name: displayName,
-        }
+        // This metadata is picked up by your SQL Trigger to set the display_name
+        data: { display_name: username }
       },
-    });
+    })
 
-    if (authError) {
-      setErrorMsg(authError.message);
-      setLoading(false);
-      return;
-    }
+    if (error) alert(error.message)
+    else alert('Check your email to confirm your account!')
+  }
 
-    if (authData.user) {
-      // 2. Create the profile in your custom 'profiles' table
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([
-          { 
-            id: authData.user.id, 
-            display_name: displayName,
-            wallet_balance: 0,
-            followers_count: 0
-          }
-        ]);
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <h1 className="text-2xl font-bold mb-6">Create your Literally Account</h1>
+      
+      {/* Email Sign Up Form */}
+      <form onSubmit={handleEmailSignUp} className="flex flex-col gap-4 w-80">
+        <input 
+          type="text" placeholder="Pen Name (Username)" 
+          onChange={(e) => setUsername(e.target.value)} 
+          className="border p-2 rounded text-black" 
+        />
+        <input 
+          type="email" placeholder="Email" 
+          onChange={(e) => setEmail(e.target.value)} 
+          className="border p-2 rounded text-black" 
+        />
+        <input 
+          type="password" placeholder="Password" 
+          onChange={(e) => setPassword(e.target.value)} 
+          className="border p-2 rounded text-black" 
+        />
+        <button type="submit" className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
+          Sign Up with Email
+        </button>
+      </form>
+
+      <div className="my-4">OR</div>
+
+      {/* Google Sign Up Button */}
+      <button 
+        onClick={handleGoogleSignUp}
+        className="flex items-center justify-center gap-2 border p-2 rounded w-80 hover:bg-gray-100 transition-colors"
+      >
+        <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
+        Sign Up with Google
+      </button>
+    </div>
+  )
+}
 
       if (profileError) {
         console.error("Profile error:", profileError);
@@ -139,3 +153,4 @@ function SignupForm() {
     </div>
   );
 }
+
