@@ -1,3 +1,4 @@
+// app/auth/callback/route.ts
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
@@ -8,10 +9,10 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = createRouteHandlerClient({ cookies })
+    // This "handshake" swaps the Google code for a real session
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  // URL to redirect to after sign in process completes
-  // We send them to /setup to finish their profile
-  return NextResponse.redirect(`${requestUrl.origin}/setup`)
+  // Redirect to your existing onboarding page
+  return NextResponse.redirect(`${requestUrl.origin}/onboarding`)
 }
