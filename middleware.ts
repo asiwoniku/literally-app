@@ -6,34 +6,23 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
 
-  // This refreshes the session if it's expired - essential for staying logged in
-  const { data: { session } } = await supabase.auth.getSession()
-
-  // 1. If user is NOT logged in and tries to go to Feed or Studio, send them to Login
-  const isProtectedPage = req.nextUrl.pathname.startsWith('/feed') || 
-                          req.nextUrl.pathname.startsWith('/studio') ||
-                          req.nextUrl.pathname.startsWith('/profile');
-
-  if (!session && isProtectedPage) {
-    return NextResponse.redirect(new URL('/login', req.url))
-  }
-
-  // 2. If user IS logged in and tries to go to Login or Signup, send them to Feed
-  if (session && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/signup')) {
-    return NextResponse.redirect(new URL('/feed', req.url))
-  }
+  // This is the critical part: it refreshes the session 
+  // and stores it in the browser cookies.
+  await supabase.auth.getSession()
 
   return res
 }
 
-// This tells Next.js exactly which pages the "security guard" should watch
+// This "matcher" tells Next.js exactly which paths to run the middleware on.
+// We exclude static files and images to keep the site fast.
 export const config = {
   matcher: [
-    '/feed/:path*', 
-    '/studio/:path*', 
-    '/profile/:path*',
-    '/login',
-    '/signup'
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
-    }
-                                         
+}
