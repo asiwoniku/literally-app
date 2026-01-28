@@ -1,4 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -6,16 +7,11 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code')
 
   if (code) {
-    // Connect to your Supabase project
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-    
-    // Exchange the temporary code for a real user session
+    const supabase = createRouteHandlerClient({ cookies })
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  // After they are logged in, send them to the home page (dashboard)
-  return NextResponse.redirect(requestUrl.origin)
+  // URL to redirect to after sign in process completes
+  // We send them to /setup to finish their profile
+  return NextResponse.redirect(`${requestUrl.origin}/setup`)
 }
